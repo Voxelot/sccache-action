@@ -41,7 +41,7 @@ export const restoreCache = async (cacheKey: string, restoreKeys: string[]) => {
 	if(restoredCacheKey) {
 		core.info(`Cache restored from ${restoredCacheKey}.`);
 	} else {
-		core.info(`Cache not found.`);
+		core.info(`Cache not found at ${cacheKey}.`);
 	}
 };
 
