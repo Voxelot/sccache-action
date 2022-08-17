@@ -1,28 +1,25 @@
-
-import { writeFileSync } from 'fs';
-const GitHub = require('github-api');
+import {writeFileSync} from 'fs';
 import * as core from '@actions/core';
 import * as cache from '@actions/cache';
-import { exec } from '@actions/exec';
+import {exec} from '@actions/exec';
+
+const GitHub = require('github-api');
 
 export const getAsset = async (releaseName: string, arch: string) => {
 	const gh = new GitHub();
 	const repo = gh.getRepo('mozilla', 'sccache');
-	const asset = await (async () => {
-		if(releaseName == 'latest') {
+	return await (async () => {
+		if (releaseName == 'latest') {
 			const release = await repo.getRelease(releaseName);
-			const asset = release.data.assets.find(
+			return release.data.assets.find(
 				(asset: any) => new RegExp(`^sccache-v(.*?)-${arch}.tar.gz$`).test(asset.name));
-			return asset;
 		} else {
 			const releases = await repo.listReleases();
 			const release = releases.data.find((release: any) => release.tag_name == releaseName);
-			const asset = release.assets.find(
+			return release.assets.find(
 				(asset: any) => new RegExp(`^sccache-${releaseName}-${arch}.tar.gz$`).test(asset.name));
-			return asset;
 		}
 	})();
-	return asset;
 };
 
 export const download = async (releaseName: string, arch: string) => {
@@ -38,9 +35,9 @@ export const setupRust = async () => {
 	writeFileSync(`${process.env.HOME}/.cargo/config`, `[build]\nrustc-wrapper = "/tmp/sccache/sccache"\n`);
 };
 
-export const restoreCache = async (cacheKey: string) => {
+export const restoreCache = async (cacheKey: string, restoreKeys: string[]) => {
 	const restoredCacheKey = await cache.restoreCache(
-		[`${process.env.HOME}/.cache/sccache`], `${cacheKey}-${new Date().toISOString()}`, [`${cacheKey}-`]);
+		[`${process.env.HOME}/.cache/sccache`], cacheKey, restoreKeys);
 	if(restoredCacheKey) {
 		core.info(`Cache restored from ${restoredCacheKey}.`);
 	} else {
@@ -55,11 +52,12 @@ export const resetStat = async () => {
 export const run = async () => {
 	try {
 		const cacheKey    = core.getInput('cache-key');
+		const restoreKeys = core.getMultilineInput('restore-keys');
 		const releaseName = core.getInput('release-name');
 		const arch        = core.getInput('arch');
 		await download(releaseName, arch);
 		await setupRust();
-		await restoreCache(cacheKey);
+		await restoreCache(cacheKey, restoreKeys);
 		await resetStat();
 	} catch(err) {
 		core.setFailed(err.message);

@@ -3,7 +3,11 @@ description: 'A GitHub Action that speeds up Rust compilation with sccache.'
 inputs:
   cache-key:
     description: 'The cache key.'
+    required: false
     default: 'sccache'
+  restore-keys:
+    required: false
+    description: 'Alternative cache restore keys'
   release-name:
     description: 'The sccache version.'
     default: 'latest'
